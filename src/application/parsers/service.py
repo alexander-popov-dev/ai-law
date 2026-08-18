@@ -236,12 +236,6 @@ class LegalDocumentParser:
             value for value in parts if value
         )
 
-    def _matches(self, pattern: re.Pattern[str]) -> bool:
-        if not self._data_tree:
-            return False
-
-        return bool(pattern.fullmatch(self._data_tree))
-
     @staticmethod
     def _get_text(tag: Tag) -> str:
         return " ".join(tag.get_text(separator=" ", strip=True).split())
