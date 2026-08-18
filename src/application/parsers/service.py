@@ -11,13 +11,6 @@ from src.application.parsers.enums import LegalDocumentDataType, LegalArticleDat
 
 class LegalDocumentParser:
 
-    BOOK_RE = re.compile(fr"^{LegalDocumentDataType.BOOK}")
-    SECTION_RE = re.compile(fr"^{LegalDocumentDataType.SECTION}")
-    SUB_SECTION_RE = re.compile(fr"^{LegalDocumentDataType.SUB_SECTION}")
-    CHAPTER_RE = re.compile(fr"^{LegalDocumentDataType.CHAPTER}")
-    PARAGRAPH_RE = re.compile(fr"^{LegalDocumentDataType.PARAGRAPH}")
-    SUB_PARAGRAPH_RE = re.compile(fr"^{LegalDocumentDataType.PARAGRAPH}")
-
     def __init__(self, html: str, base_url: str, document_id: str) -> None:
         self._soup = BeautifulSoup(html,"html.parser")
 
