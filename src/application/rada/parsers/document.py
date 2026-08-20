@@ -4,15 +4,15 @@ from datetime import date, datetime
 from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList
 
-from application.dto.document import LegalDocumentDTO
-from src.application.dto.chunk import LegalChunkDTO
-from src.application.parsers.enums import (
+from application.rada.dto.document import LegalDocumentDTO
+from application.rada.dto.chunk import LegalChunkDTO
+from application.rada.parsers.enums import (
     LegalDocumentDataType,
     LegalArticleDataType,
 )
 
 
-class LegalDocumentParser:
+class RadaLegalDocumentParser:
     """
     Parses a legal document from the HTML structure used by
     zakon.rada.gov.ua.
@@ -362,7 +362,7 @@ class LegalDocumentParser:
                 document_id=self._document_id,
                 book=self._book,
                 section=self._section,
-                subsection=self._sub_section,
+                sub_section=self._sub_section,
                 chapter=self._chapter,
                 paragraph=self._paragraph,
                 sub_paragraph=self._sub_paragraph,
