@@ -30,6 +30,7 @@ class RadaLegalDocumentParser:
                                     Part
                                     Item
                                     Sub item
+                                    Sub sub item
 
     A LegalChunkDTO is created whenever the current logical block
     is considered complete according to the punctuation rules used
@@ -83,14 +84,16 @@ class RadaLegalDocumentParser:
         self._preamble: str | None = None
         self._article: str | None = None
         self._item: str | None = None
-        self._part: str | None = None
         self._sub_item: str | None = None
+        self._sub_sub_item: str | None = None
+        self._part: str | None = None
 
         # References extracted from the current element.
         self._references: list[str] = []
 
         # Completed chunks.
         self._chunks: list[LegalChunkDTO] = []
+        self._skipped: list[str] = []
 
     def parse(self):
         """
@@ -115,6 +118,8 @@ class RadaLegalDocumentParser:
 
             text = self._get_text(p)
 
+            if self._data_tree == 'pp_1:pu1:st23':
+                pass
             # ==========================================================
             # BOOK
             # ==========================================================
@@ -244,7 +249,9 @@ class RadaLegalDocumentParser:
 
                 # A new article starts a new item/part context.
                 self._item = None
+                self._sub_item = None
                 self._part = None
+                self._references.clear()
 
                 # If the article itself is a complete sentence,
                 # immediately create a chunk.
@@ -283,7 +290,7 @@ class RadaLegalDocumentParser:
             # SUB ITEM
             # ==========================================================
 
-            if self._data_tree.startswith(LegalArticleDataType.SUB_ITEM):
+            if re.match(fr"^{LegalArticleDataType.SUB_ITEM}[0-9]", self._data_tree):
                 self._sub_item = text
 
                 # A complete sub-item becomes a chunk.
@@ -297,7 +304,7 @@ class RadaLegalDocumentParser:
                     if self._sub_item.endswith("."):
                         self._part = None
 
-                    self._sub_item = None
+                    # self._sub_item = None
 
                 continue
 
@@ -341,12 +348,38 @@ class RadaLegalDocumentParser:
 
                 continue
 
+            if re.match(fr"^{LegalArticleDataType.SUB_ITEM}[a-z]", self._data_tree):
+                self._sub_sub_item = text
+
+                # A complete sub-item becomes a chunk.
+                if self._sub_sub_item and self._sub_sub_item.endswith(
+                        (".", ";", "!", "?"),
+                ):
+                    self._flush()
+                    self._sub_sub_item = None
+
+                continue
+
+            if text and text.startswith('{'):
+                a = p.find('a', attrs={'href': True})
+                if a:
+                    reference = a.get('href')
+                    if reference and reference.startswith('#'):
+                        reference = f"{self._base_url}{self._document_id}{reference}"
+
+                    self._references.append(reference)
+
+                    continue
+
+            self._skipped.append(self._data_tree)
+
         return LegalDocumentDTO(
             external_id=self._document_id,
             title=self._title,
             source_url=f"{self._base_url}{self._document_id}",
             last_modified=self._last_modified,
-            chunks=self._chunks
+            chunks=self._chunks,
+            skipped=self._skipped,
         )
 
     def _flush(self) -> None:
@@ -416,9 +449,16 @@ class RadaLegalDocumentParser:
             self._article,
         ]
 
+        if self._data_tree == 'pp4:ch_1:st81':
+            pass
+
         # If the part ends with ':', it acts as a parent context
         # for the following item/sub-item.
-        if self._part and self._part.endswith(":"):
+        if not self._sub_item and self._part and self._part.endswith(":"):
+            parts.append(self._part)
+            parts.append(self._item)
+            parts.append(self._sub_item)
+        elif self._part and self._part.endswith(":"):
             parts.append(self._part)
             parts.append(self._item)
             parts.append(self._sub_item)
@@ -427,6 +467,8 @@ class RadaLegalDocumentParser:
             parts.append(self._item)
             parts.append(self._sub_item)
             parts.append(self._part)
+
+        parts.append(self._sub_sub_item)
 
         # Ignore empty hierarchy levels.
         return "\n".join(
